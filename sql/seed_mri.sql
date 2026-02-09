@@ -57,4 +57,4 @@ Beta → X-Ray
 Gamma → Ultrasound
 */
 
--- psql "postgresql://postgres:pgpassword@localhost:5434/crsdb"   -f sql/seed_mri.sql
+-- psql "postgresql://postgres:pgpassword@localhost:5436/crs-commn-db"   -f sql/seed_mri.sql
