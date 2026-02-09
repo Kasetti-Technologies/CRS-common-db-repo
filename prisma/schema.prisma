@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Center {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  active    Boolean  @default(true)
+
+  modalities        CenterModality[]
+  machines          Machine[]
+  operators         Operator[]
+  availabilityRules AvailabilityRule[]
+  appointments      Appointment[]
+
+  createdAt DateTime @default(now())
+}
+
+model Modality {
+  id           String @id @default(uuid())
+  name         String
+  slotDuration Int
+
+  centers      CenterModality[]
+  machines     Machine[]
+  operators    Operator[]
+  availabilityRules AvailabilityRule[]
+  appointments Appointment[]
+}
+
+model CenterModality {
+  id         String @id @default(uuid())
+  centerId   String
+  modalityId String
+
+  center   Center   @relation(fields: [centerId], references: [id])
+  modality Modality @relation(fields: [modalityId], references: [id])
+
+  @@unique([centerId, modalityId])
+}
+
+model Machine {
+  id         String @id @default(uuid())
+  centerId   String
+  modalityId String
+
+  center   Center   @relation(fields: [centerId], references: [id])
+  modality Modality @relation(fields: [modalityId], references: [id])
+}
+
+model Operator {
+  id         String  @id @default(uuid())
+  centerId   String
+  modalityId String
+  active     Boolean @default(true)
+
+  center   Center   @relation(fields: [centerId], references: [id])
+  modality Modality @relation(fields: [modalityId], references: [id])
+  leaves   OperatorLeave[]
+}
+
+model OperatorLeave {
+  id         String   @id @default(uuid())
+  operatorId String
+  date       DateTime
+
+  operator Operator @relation(fields: [operatorId], references: [id])
+
+  @@unique([operatorId, date])
+}
+
+model AvailabilityRule {
+  id         String  @id @default(uuid())
+  centerId   String
+  modalityId String
+  dayOfWeek  Int
+  startTime  String
+  endTime    String
+  active     Boolean @default(true)
+
+  center   Center   @relation(fields: [centerId], references: [id])
+  modality Modality @relation(fields: [modalityId], references: [id])
+
+  @@index([centerId, modalityId, dayOfWeek])
+}
+
+model Appointment {
+  id         String   @id @default(uuid())
+  centerId   String
+  modalityId String
+  date       DateTime
+  startTime  String
+  endTime    String
+
+  status AppointmentStatus @default(HOLD)
+
+  expiresAt  DateTime?
+
+  center   Center   @relation(fields: [centerId], references: [id])
+  modality Modality @relation(fields: [modalityId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([centerId, modalityId, date])
+  @@index([status, expiresAt])
+}
+
+enum AppointmentStatus {
+  HOLD
+  BOOKED
+  CANCELLED
+}
