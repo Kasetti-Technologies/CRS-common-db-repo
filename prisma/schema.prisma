@@ -7,112 +7,220 @@ datasource db {
   provider = "postgresql"
 }
 
-model Center {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique
-  active    Boolean  @default(true)
+// Define your data models here
 
-  modalities        CenterModality[]
-  machines          Machine[]
-  operators         Operator[]
-  availabilityRules AvailabilityRule[]
-  appointments      Appointment[]
+/////////////////////////////
+// SYSTEM ENUMS (ONLY THESE)
+/////////////////////////////
+
+enum AppointmentStatus {
+  HOLD        // temporarily reserved
+  CONFIRMED   // payment done
+  CANCELLED   // cancelled by user/admin
+  EXPIRED     // hold expired
+  BLOCKED     // blocked by admin
+}
+
+/////////////////////////////
+// VENDOR (HQ LEVEL)
+/////////////////////////////
+
+model Vendor {
+  id        String        @id @default(uuid())
+  name      String
+  isActive  Boolean       @default(true)
+
+  centers   Center[]
+  admins    VendorAdmin[]
+
+  createdAt DateTime      @default(now())
+}
+
+model VendorAdmin {
+  id        String   @id @default(uuid())
+  vendorId  String
+  name      String
+  email     String   @unique
+
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
 
   createdAt DateTime @default(now())
 }
 
-model Modality {
-  id           String @id @default(uuid())
-  name         String
-  slotDuration Int
+/////////////////////////////
+// CENTER (BRANCH)
+/////////////////////////////
 
-  centers      CenterModality[]
-  machines     Machine[]
-  operators    Operator[]
-  availabilityRules AvailabilityRule[]
+model Center {
+  id        String   @id @default(uuid())
+  vendorId  String
+  name      String
+  address   String
+  latitude  Float
+  longitude Float
+  rating    Float    @default(0)
+  isActive  Boolean  @default(true)
+
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  branchAdmin BranchAdmin?
+  modalities  CenterModality[]
+  machines    Machine[]        // &lt;--- add this
+  operators   Operator[]       // &lt;--- add this
   appointments Appointment[]
+  availabilityRules AvailabilityRule[]
+
+
+  createdAt DateTime @default(now())
 }
 
+/////////////////////////////
+// BRANCH ADMIN (ONE PER CENTER)
+/////////////////////////////
+
+model BranchAdmin {
+  id        String   @id @default(uuid())
+  centerId  String   @unique   // enforces 1–1
+  name      String
+  email     String   @unique
+
+  center    Center   @relation(fields: [centerId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+/////////////////////////////
+// MODALITY (GLOBAL, DYNAMIC)
+/////////////////////////////
+
+model Modality {
+  id        String   @id @default(uuid())
+  code      String   @unique    // MRI, CT, PET, etc.
+  name      String
+  category  String?
+  isActive  Boolean  @default(true)
+
+  centers   CenterModality[]
+  machines  Machine[]
+  operators Operator[]
+  rules     AvailabilityRule[]
+  appointments  Appointment[]
+  testDurations ModalityTestDuration[]
+
+  createdAt DateTime @default(now())
+}
+
+/////////////////////////////
+// CENTER ↔ MODALITY
+/////////////////////////////
+
 model CenterModality {
-  id         String @id @default(uuid())
+  id         String   @id @default(uuid())
   centerId   String
   modalityId String
+  basePrice  Int
+  isActive   Boolean  @default(true)
 
-  center   Center   @relation(fields: [centerId], references: [id])
-  modality Modality @relation(fields: [modalityId], references: [id])
+  center     Center   @relation(fields: [centerId], references: [id])
+  modality   Modality @relation(fields: [modalityId], references: [id])
 
   @@unique([centerId, modalityId])
 }
 
-model Machine {
-  id         String @id @default(uuid())
-  centerId   String
-  modalityId String
+/////////////////////////////
+// MACHINES (CAPACITY)
+/////////////////////////////
 
-  center   Center   @relation(fields: [centerId], references: [id])
-  modality Modality @relation(fields: [modalityId], references: [id])
+model Machine {
+  id            String   @id @default(uuid())
+  centerId      String
+  modalityId    String
+  name          String
+  dailyCapacity Int
+
+  center        Center   @relation(fields: [centerId], references: [id])
+  modality      Modality @relation(fields: [modalityId], references: [id])
 }
 
+/////////////////////////////
+// OPERATORS (HUMAN RESOURCE)
+/////////////////////////////
+
 model Operator {
-  id         String  @id @default(uuid())
+  id         String   @id @default(uuid())
   centerId   String
   modalityId String
-  active     Boolean @default(true)
+  name       String
+  isActive   Boolean  @default(true)
 
-  center   Center   @relation(fields: [centerId], references: [id])
-  modality Modality @relation(fields: [modalityId], references: [id])
-  leaves   OperatorLeave[]
+  center     Center   @relation(fields: [centerId], references: [id])
+  modality   Modality @relation(fields: [modalityId], references: [id])
+  leaves     OperatorLeave[]
 }
 
 model OperatorLeave {
   id         String   @id @default(uuid())
   operatorId String
-  date       DateTime
+  date       DateTime @db.Date
 
-  operator Operator @relation(fields: [operatorId], references: [id])
+  operator   Operator @relation(fields: [operatorId], references: [id])
 
   @@unique([operatorId, date])
 }
 
+/////////////////////////////
+// AVAILABILITY RULES
+/////////////////////////////
+
 model AvailabilityRule {
-  id         String  @id @default(uuid())
-  centerId   String
-  modalityId String
-  dayOfWeek  Int
-  startTime  String
-  endTime    String
-  active     Boolean @default(true)
+  id          String   @id @default(uuid())
+  centerId    String
+  modalityId  String
+  dayOfWeek   Int      // 0 = Sunday
+  startTime   String   // HH:mm
+  endTime     String   // HH:mm
+  slotMinutes Int      // 10, 15, 30
 
-  center   Center   @relation(fields: [centerId], references: [id])
-  modality Modality @relation(fields: [modalityId], references: [id])
+  center      Center   @relation(fields: [centerId], references: [id])
+  modality    Modality @relation(fields: [modalityId], references: [id])
 
-  @@index([centerId, modalityId, dayOfWeek])
+  @@unique([centerId, modalityId, dayOfWeek])
 }
+
+/////////////////////////////
+// TEST-SPECIFIC SLOT DURATION
+/////////////////////////////
+
+model ModalityTestDuration {
+  id              String   @id @default(uuid())
+  modalityId      String
+  testKeyword     String   // "BRAIN", "SPINE", etc.
+  durationMinutes Int
+
+  modality        Modality @relation(fields: [modalityId], references: [id])
+
+  @@unique([modalityId, testKeyword])
+}
+
+/////////////////////////////
+// APPOINTMENTS
+/////////////////////////////
 
 model Appointment {
-  id         String   @id @default(uuid())
-  centerId   String
-  modalityId String
-  date       DateTime
-  startTime  String
-  endTime    String
+  id              String            @id @default(uuid())
+  centerId        String
+  modalityId      String
+  testKeyword     String?
+  appointmentDate DateTime          @db.Date
+  startTime       String            // HH:mm
+  endTime         String            // HH:mm
+  status          AppointmentStatus
+  holdExpiresAt   DateTime?
+  isDeleted       Boolean           @default(false)
 
-  status AppointmentStatus @default(HOLD)
+  center          Center            @relation(fields: [centerId], references: [id])
+  modality        Modality          @relation(fields: [modalityId], references: [id])
 
-  expiresAt  DateTime?
+  createdAt       DateTime          @default(now())
 
-  center   Center   @relation(fields: [centerId], references: [id])
-  modality Modality @relation(fields: [modalityId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@index([centerId, modalityId, date])
-  @@index([status, expiresAt])
-}
-
-enum AppointmentStatus {
-  HOLD
-  BOOKED
-  CANCELLED
+  @@index([centerId, modalityId, appointmentDate])
 }
