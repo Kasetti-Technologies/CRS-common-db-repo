@@ -1,4 +1,4 @@
-import { prisma } from "../../../../prisma.js";
+import { prisma } from "../../../../prisma";
 
 export const createVendor = (data: { name: string }) =>
   prisma.vendor.create({ data })
