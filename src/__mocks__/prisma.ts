@@ -6,13 +6,21 @@ export const prismaMock = {
   vendorAdmin: {
     create: jest.fn(),
   },
-
-  // ADD THIS 👇
   center: {
     create: jest.fn(),
     update: jest.fn(),
   },
   branchAdmin: {
     create: jest.fn(),
+  },
+  modality: {
+    create: jest.fn(),
+    findMany: jest.fn(),
+  },
+
+  // ADD 👇
+  machine: {
+    create: jest.fn(),
+    update: jest.fn(),
   },
 };
