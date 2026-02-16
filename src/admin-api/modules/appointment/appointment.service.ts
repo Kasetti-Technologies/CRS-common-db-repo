@@ -1,5 +1,5 @@
-import { prisma } from "../../../../prisma.js";
-import { AppointmentStatus } from '../../../../generated/prisma/client.js'
+import { prisma } from "../../../../prisma";
+import { AppointmentStatus } from '../../../../generated/prisma/client'
 
 
 export const block = (data: any) =>

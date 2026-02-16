@@ -7,4 +7,9 @@ module.exports = {
   },
   testMatch: ['**/__tests__/**/*.test.ts'],
   clearMocks: true,
-};
+
+  moduleNameMapper: {
+    '^../../../../generated/prisma/client$':
+      '<rootDir>/src/__mocks__/generated/prisma/client.ts',
+  },
+}

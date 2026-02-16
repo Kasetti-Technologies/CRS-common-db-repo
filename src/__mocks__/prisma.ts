@@ -17,10 +17,23 @@ export const prismaMock = {
     create: jest.fn(),
     findMany: jest.fn(),
   },
-
-  // ADD 👇
   machine: {
     create: jest.fn(),
     update: jest.fn(),
   },
-};
+  operator: {
+    create: jest.fn(),
+  },
+  operatorLeave: {
+    create: jest.fn(),
+  },
+  availabilityRule: {
+    create: jest.fn(),
+  },
+
+  // ✅ ADD APPOINTMENT
+  appointment: {
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+}
