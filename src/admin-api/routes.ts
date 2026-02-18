@@ -7,6 +7,9 @@ import machineRoutes from './modules/machine/machine.routes'
 import operatorRoutes from './modules/operator/operator.routes'
 import availabilityRoutes from './modules/availability/availability.routes'
 import appointmentRoutes from './modules/appointment/appointment.routes'
+// --
+import centerModalityRoutes from './modules/center-modality/center.modality.routes'
+import modalityTestDurationRoutes from './modules/modality-test-duration/modality.test.duration.routes'
 
 
 
@@ -19,6 +22,9 @@ router.use('/machines', machineRoutes)
 router.use('/operators', operatorRoutes)
 router.use('/availability', availabilityRoutes)
 router.use('/appointments', appointmentRoutes)
+// --
+router.use('/center-modalities', centerModalityRoutes)
+router.use('/modality-test-durations', modalityTestDurationRoutes)
 
 
 
